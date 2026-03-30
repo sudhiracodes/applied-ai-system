@@ -5,7 +5,19 @@
 **a. Initial design**
 
 - Briefly describe your initial UML design.
+
+ My initial design uses a simple object-oriented structure with four core classes: Owner, Pet, Task, Scheduler; to separate data from logic. 
+ - The Owner class has the attributes name and a list of pets. It uses the methods add_pet() to link a new pet to the user, and get_all_tasks() to aggregate every task across all owned pets.
+
+ - The Pet class represents an individual animal, with attributes like name, species, and a list of its specific Task objects. It has the method add_task() to assign a new chore directly to that pet.
+
+- The Task class tracks a single chore's attributes (description, time, frequency) and an is_complete boolean flag. It uses the method mark_complete() to update the task's status to finished.
+
+-The Scheduler Class holds attribute Owner and methods get_today_schedule(), sort_by_time() to order the aggregated tasks chronologically, and check_conflicts() to scan the schedule and flag any tasks occurring at the exact same time.
+
 - What classes did you include, and what responsibilities did you assign to each?
+
+The Owner class holds a list of Pet objects, and each Pet manages its own list of Task chores. I built a separate Scheduler class to act as the logic engine; instead of storing data, it takes the Owner object, aggregates all pet tasks, sorts them by time, and flags any scheduling conflicts.
 
 **b. Design changes**
 
