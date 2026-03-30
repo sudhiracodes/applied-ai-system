@@ -66,12 +66,18 @@ This is reasonable because pet care is inherently time‑sensitive. It’s usual
 **a. How you used AI**
 
 - How did you use AI tools during this project (for example: design brainstorming, debugging, refactoring)?
+I used AI primarily for brainstorming edge cases and design, understanding mechanics(Streamlit and other functionalites), and generating baseline logic for the classes and the Pytest suite. Also used to verify if the given code is correct optimised, and how I could change it to be better.
+
 - What kinds of prompts or questions were most helpful?
+The most helpful prompts used the @workspace or #codebase tags to ask the AI to review my specific files and suggest edge cases I hadn't thought of (like tasks overlapping rather than starting at the exact same minute).
 
 **b. Judgment and verification**
 
 - Describe one moment where you did not accept an AI suggestion as-is.
+While generating the initial UML diagram, the AI suggestion that it created for the project was a flawed a little and I had to manually prompt it agian to ask for the specific functionalities.
+
 - How did you evaluate or verify what the AI suggested?
+By going through the logic of the code, verifying by myself and asking a different LLM to verify and evaluate. Created scenarios where it might fail to find edge cases in the AI suggested code.
 
 ---
 
@@ -80,12 +86,19 @@ This is reasonable because pet care is inherently time‑sensitive. It’s usual
 **a. What you tested**
 
 - What behaviors did you test?
+I tested five core behaviors: basic object tracking (task completion status and adding tasks to a pet), chronological sorting of out-of-order tasks, the automatic generation of next-day tasks for "Daily" recurrences, and conflict detection for overlapping timeframes.
+
 - Why were these tests important?
+These tests validate the entire "smart" aspect of the application. If the scheduler doesn't sort chronologically, the daily plan is completely broken. If it fails to flag overlapping times or doesn't auto-generate daily routines, the app creates more work for the owner instead of saving them time.
+
 
 **b. Confidence**
 
 - How confident are you that your scheduler works correctly?
+I am fairly confident in the core functionality because the Pytest suite proves the edge cases work, and the Streamlit UI correctly reflects the data.
+
 - What edge cases would you test next if you had more time?
+If I had more time, I would test complex recurrence rules (like what happens on end-of-month boundaries), and how the time budget handles tasks that perfectly match the remaining time but have a lower priority.
 
 ---
 
@@ -94,11 +107,15 @@ This is reasonable because pet care is inherently time‑sensitive. It’s usual
 **a. What went well**
 
 - What part of this project are you most satisfied with?
+ I am most satisfied with creating a basic functioning program that meets the requiremnts of the user. The scheduler helps the user to organise their time alloted for their pets.
 
 **b. What you would improve**
 
 - If you had another iteration, what would you improve or redesign?
+I would improve the UI of the site, and also remove the bugs in the UI.( as now, when the task is scehduled, the UI doesnt automatically give a blank space ot enter the new task).
+
 
 **c. Key takeaway**
 
 - What is one important thing you learned about designing systems or working with AI on this project?
+A major takeaway is that while AI excels at rapidly generating boilerplate code, it lacks true architectural awareness and can easily misunderstand class connections. I learned that when building systems with AI, you must act as the lead architect. You can let the AI draft the code, but you must strictly verify and adapt its output to ensure the final system remains cohesive and functional.

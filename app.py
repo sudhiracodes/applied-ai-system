@@ -1,5 +1,6 @@
 import streamlit as st
 from datetime import datetime, date
+import pandas as pd
 from pawpal_system import Owner, Pet, Task, Scheduler
 
 # --- 1. Session State Initialization ---
@@ -68,6 +69,7 @@ if budget_toggle:
 pet_filter_options = ["All Pets"] + [pet.name() for pet in owner.pets()]
 selected_filter = st.selectbox("Filter by pet", pet_filter_options)
 
+
 # Run Algorithms
 today = date.today()
 
@@ -77,28 +79,69 @@ else:
     selected_pet = next(p for p in owner.pets() if p.name() == selected_filter)
     base_tasks = selected_pet.get_tasks()
 
+# Use Scheduler to build today's schedule (already sorted by time/priority)
 scheduled_tasks = scheduler.get_today_schedule(today, budget_mins, tasks=base_tasks)
+
+# You can optionally re-apply sorting here to be explicit:
+scheduled_tasks = scheduler.sort_by_time_and_priority(scheduled_tasks)
+
+# Check for conflicts among the scheduled tasks
 conflicts = scheduler.check_conflicts(scheduled_tasks)
 
-for warning_task in conflicts:
-    st.warning(f"Time conflict detected at {warning_task.time().strftime('%H:%M')}!", icon="⚠️")
+# Present conflict warnings in a helpful, detailed way
+if conflicts:
+    st.warning(
+        "Some tasks have overlapping times. Please review the conflicts below.",
+        icon="⚠️",
+    )
 
-if not scheduled_tasks:
-    st.write("No tasks scheduled for today.")
-else:
-    for task in scheduled_tasks:
-        # Find which pet owns the task for UI display
-        pet_name_display = "Unknown"
-        for pet in owner.pets():
-            if task in pet.get_tasks():
-                pet_name_display = pet.name()
+    # Build a small table that shows conflicting tasks clearly
+    conflict_rows = []
+    for t in conflicts:
+        # Try to infer pet name (for All Pets view) by searching owner's pets
+        pet_name = None
+        for p in owner.pets():
+            if t in p.get_tasks():
+                pet_name = p.name()
                 break
 
-        col1, col2, col3 = st.columns([1, 3, 1])
-        with col1:
-            st.write(f"**{task.time().strftime('%H:%M')}**")
-        with col2:
-            st.write(f"🐶 **{pet_name_display}**: {task.description()} ({task.duration_minutes()}m) | Priority: {'⭐'*task.priority()}")
-        with col3:
-            status = "✅ Done" if task.is_complete() else "⏳ Pending"
-            st.write(status)
+        conflict_rows.append(
+            {
+                "Pet": pet_name or "Unknown",
+                "Task": t.description(),
+                "Start": t.time().strftime("%Y-%m-%d %H:%M"),
+                "End": t.end_time().strftime("%Y-%m-%d %H:%M"),
+                "Priority": t.priority(),
+            }
+        )
+
+    st.table(pd.DataFrame(conflict_rows))
+
+# Show a success/info panel for the main schedule
+if not scheduled_tasks:
+    st.info("No tasks scheduled for today with the current filters and time budget.")
+else:
+    st.success("Here is your scheduled plan for today:")
+
+    rows = []
+    for t in scheduled_tasks:
+        # Try to show pet name for context
+        pet_name = None
+        for p in owner.pets():
+            if t in p.get_tasks():
+                pet_name = p.name()
+                break
+
+        rows.append(
+            {
+                "Pet": pet_name or "Unknown",
+                "Task": t.description(),
+                "Start": t.time().strftime("%Y-%m-%d %H:%M"),
+                "End": t.end_time().strftime("%Y-%m-%d %H:%M"),
+                "Duration (min)": t.duration_minutes(),
+                "Priority": t.priority(),
+                "Completed": "✅" if t.is_complete() else "",
+            }
+        )
+
+    st.table(pd.DataFrame(rows))
