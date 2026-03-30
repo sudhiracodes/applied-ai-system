@@ -112,7 +112,7 @@ If I had more time, I would test complex recurrence rules (like what happens on 
 **b. What you would improve**
 
 - If you had another iteration, what would you improve or redesign?
-I would improve the UI of the site, and also remove the bugs in the UI.( as now, when the task is scehduled, the UI doesnt automatically give a blank space ot enter the new task).
+I would improve the UI of the site, and also remove the bugs in the UI.( as now, when the task is scehduled, the UI doesnt automatically give a blank space ot enter the new task). Also have to verify the mark as complete functionality.
 
 
 **c. Key takeaway**
