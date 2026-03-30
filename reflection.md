@@ -22,7 +22,10 @@ The Owner class holds a list of Pet objects, and each Pet manages its own list o
 **b. Design changes**
 
 - Did your design change during implementation?
+Yes
 - If yes, describe at least one change and why you made it.
+
+In my initial UML, I kept simpler tasks and a scheduler that only sorted and flagged conflicts. During implementation I expanded the Task class to include duration, priority, and an end_time helper, and I extended Scheduler.get_today_schedule to sort by time and priority and optionally respect an available‑minutes time budget. This shifts some responsibility into the domain classes while still keeping the main coordination inside Scheduler, and it makes it easier to evolve the scheduling rules later to handle more real‑world constraints without rewriting the whole design.
 
 ---
 
