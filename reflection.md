@@ -119,3 +119,18 @@ I would improve the UI of the site, and also remove the bugs in the UI.( as now,
 
 - What is one important thing you learned about designing systems or working with AI on this project?
 A major takeaway is that while AI excels at rapidly generating boilerplate code, it lacks true architectural awareness and can easily misunderstand class connections. I learned that when building systems with AI, you must act as the lead architect. You can let the AI draft the code, but you must strictly verify and adapt its output to ensure the final system remains cohesive and functional.
+
+### 5. Reflection and Ethics with AI Agent integration
+
+**Limitations and Biases**
+The AI agent assumes standard, neurotypical interpretations of time and routine. If a user is vague (e.g., "Take the dog out this afternoon"), the LLM exhibits a bias toward standard working-class schedules, frequently defaulting to exactly 12:00 PM or 5:00 PM. It lacks the personal context of the user's actual life, relying heavily on explicit prompt details to avoid hallucinating inaccurate durations or times.
+
+**Misuse and Prevention**
+A malicious user could attempt prompt injection to bypass the scheduling system (e.g., instructing the AI to output executable Python code or drop database tables instead of schedule tasks). To prevent this, the architecture acts as a strict firewall. The LLM's output is never executed; it is strictly parsed via `json.loads()` and forcibly mapped to expected primitive types (integers, formatted strings) within the Python `Task` dataclass. Any deviation from this schema triggers a safe Python exception rather than a system breach.
+
+**Testing Surprises**
+During reliability testing, I was surprised by how stubbornly the LLM adhered to formatting habits, even when explicitly instructed otherwise.This required building an unexpected string-cleaning step before the JSON parser to prevent the application from crashing.
+
+**AI Collaboration**
+* **Helpful Instance:** The AI was incredibly useful for rapid prototyping, specifically in generating the exact `google-generativeai` implementation logic and structuring the system prompt to enforce a strict JSON schema that matched my backend dataclasses.
+* **Flawed Instance:** During the integration phase, the AI suggested placing the variable definition for the user's `pet_names` *below* the AI execution block. Because Python executes sequentially, this caused a critical `NameError` crash. I had to manually debug the architectural flow and move the variable declaration above the AI logic block so the prompt had the correct scope.

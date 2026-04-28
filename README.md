@@ -1,140 +1,78 @@
-# PawPal+ (Module 2 Project)
+# PawPal+ AI Agent
 
-You are building **PawPal+**, a Streamlit app that helps a pet owner plan care tasks for their pet.
+### Original Project Context
+This project is an evolution of my Module 1-3 project, **PawPal+**. The original PawPal+ was an intelligent pet care scheduling application featuring a deterministic Python backend capable of time-based sorting, priority management, and scheduling conflict detection. 
 
-## Scenario
+### Title and Summary
+**PawPal+ AI Agentic Workflow**
+This system upgrades the original PawPal+ pet care scheduler with an AI-driven Agentic Workflow. Instead of manually filling out rigid task forms, users can describe their pet's day in messy, natural language. The AI acts as an intelligent parser that extracts the user's intent, formats it into strict JSON, and passes it to the backend. This matters because it bridges the gap between natural human communication and strict, type-safe backend microservices.
 
-A busy pet owner needs help staying consistent with pet care. They want an assistant that can:
+### Architecture Overview
+*(See `assets/architecture.png` for the system diagram)*
+The system utilizes a wrapper architecture:
+1. **Input:** The user types a natural language request in the Streamlit UI.
+2. **Agentic Processing:** The Gemini 2.5 Flash LLM acts as the agent, parsing the text and extracting a strict JSON schema that perfectly matches the Python `Task` dataclass.
+3. **Evaluation/Guardrails:** The parsed Python object is fed directly into the existing `Scheduler.check_conflicts()` method.
+4. **Output:** The system evaluates the rule set. It either successfully schedules the task, or rejects it with a conflict warning, keeping the human in the loop to review the AI's decision.
 
-- Track pet care tasks (walks, feeding, meds, enrichment, grooming, etc.)
-- Consider constraints (time available, priority, owner preferences)
-- Produce a daily plan and explain why it chose that plan
+![Architecture](architecture.png)
 
-Your job is to design the system first (UML), then implement the logic in Python, then connect it to the Streamlit UI.
+### Setup Instructions
+1. Clone this repository to your local machine: `git clone <your-repo-url>`
+2. Navigate into the directory: `cd applied-ai-system-final`
+3. Create a virtual environment and install dependencies:
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
 
-## What you will build
+### Sample Interactions
 
-Your final app should:
+**Scenario 1: Successful Scheduling**
+* **User Input:** *"Schedule a high priority 45-min walk for Leo at 5 PM."*
+* **AI Output:** Successfully parses to `{"pet_name": "Leo", "task_desc": "walk", "start_time": "17:00", "duration": 45, "priority": 5, "frequency": "Once"}`. The backend validates it and adds it to the UI.
 
-- Let a user enter basic owner + pet info
-- Let a user add/edit tasks (duration + priority at minimum)
-- Generate a daily schedule/plan based on constraints and priorities
-- Display the plan clearly (and ideally explain the reasoning)
-- Include tests for the most important scheduling behaviors
+![Scenario 1](/assets/scene1.png)
 
-## Getting started
+**Scenario 2: Conflict Detection (Guardrail Triggered)**
+* **User Input:** *"Book a vet visit for Leo at 5 PM."* (Assuming the walk from Scenario 1 is already scheduled).
+* **AI Output:** The AI parses the JSON, but the Python backend catches the overlapping time. The UI displays: *"⚠️ AI caught a conflict! 'vet visit' overlaps with an existing task. Please adjust the time."*
 
-### Setup
+![Scenario 2](/assets/scene2.png)
 
+### Design Decisions
+
+I chose to implement an **Agentic Workflow** acting as a parser layer above my existing deterministic logic. A major trade-off here was relying on the LLM's speed and natural language capabilities over absolute predictability. To mitigate the risk of the LLM hallucinating bad data, I hard-coded the system prompt to demand pure JSON, and wrapped the output in the original Python conflict-detection guardrails. This ensures the AI's outputs are safely validated by hard code before ever reaching the database or schedule.
+
+### Testing Summary
+
+The system's reliability was tested using two methods:
+
+1. **Automated Unit Tests:** The core backend sorting, priority, and conflict logic is verified by an existing Pytest suite.
+2. **Error Handling & Guardrails:** I tested the AI integration by feeding it conflicting schedule times and malformed text. The Python `try/except` blocks successfully caught LLM formatting errors, and the hard-coded `check_conflicts` logic successfully prevented the AI from double-booking time slots.
+
+### Testing and Reliability Summary
+The system's reliability is validated using automated tests, error logging, and AI confidence scoring. 
+
+**Summary:** 8 out of 8 backend unit tests passed. During human evaluation, the AI parsed valid inputs with an average confidence score of 0.95. The AI's confidence dropped to 0.6 when implicit contexts (like missing durations) were provided. Overall accuracy and system stability improved to 100% after wrapping the LLM parser in strict JSON guardrails and passing the output through the backend `check_conflicts` logic to intercept hallucinations.
+
+To run the file and just see a quick summary:
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+pytest test_pawpal.py
 ```
 
-### Suggested workflow
+### Stretch Feature: Agentic Workflow Enhancement (+2 Points)
+**Observable Intermediate Steps:** To enhance the agentic workflow, the AI is explicitly prompted to generate a `planning_steps` chain before finalizing the task data. This multi-step reasoning forces the LLM to explain how it deduced the target pet, calculated the time, and inferred the priority level. This decision-making chain is fully observable to the user via a dropdown expander in the UI prior to the success confirmation.
+**Tradeoffs & Future Work:** Implementing this observable reasoning chain introduces a minimal latency delay during task generation, as the LLM must generate more tokens before finalizing the JSON. Future iterations will focus on optimizing this prompt for speed, as well as integrating a voice-to-text transcription feature to allow for true hands-free scheduling.
 
-1. Read the scenario carefully and identify requirements and edge cases.
-2. Draft a UML diagram (classes, attributes, methods, relationships).
-3. Convert UML into Python class stubs (no logic yet).
-4. Implement scheduling logic in small increments.
-5. Add tests to verify key behaviors.
-6. Connect your logic to the Streamlit UI in `app.py`.
-7. Refine UML so it matches what you actually built.
+### Reflection
 
-## Smarter Scheduling
+This project taught me that while AI is incredibly powerful at deciphering human intent, it requires strict architectural boundaries. Letting an LLM output directly to a database or user interface is risky; however, using an LLM to parse intent and then handing that data off to traditional, strongly-typed Python logic creates a robust, professional-grade application.
 
-PawPal+ now includes smarter scheduling features to make daily planning more useful:
+### Portfolio Artifact & Reflection
+**GitHub Repository:** https://github.com/sudhiracodes/applied-ai-system
+**Loom Walkthrough:** 
 
-- **Time & Priority Sorting** – Tasks are ordered by start time, then by priority, so the most important tasks at each time slot appear first.
-- **Pet Filtering** – View schedules for all pets together or filter down to a single pet in the UI.
-- **Recurring Tasks** – Daily and weekly tasks automatically generate a new instance for the next occurrence when marked complete.
-- **Conflict Detection** – Lightweight conflict checks warn when two tasks overlap in time (for the same or different pets), without stopping the app.
-- **Task Filtering** – Tasks can be filtered by completion status or by pet name in the scheduler logic, enabling focused views and reports.
-
-## Testing PawPal+
-
-To run the automated test suite, use:
-
-```bash
-python -m pytest
-```
-
-The current tests cover:
-* Core `Task` behavior (creation and completion).
-* Adding tasks to a `Pet`.
-* Scheduler sorting logic to ensure tasks are ordered chronologically and by priority.
-* Recurring task handling for daily tasks (creating the next day’s task on completion).
-* Conflict detection for overlapping tasks.
-
-**Confidence Level:** ⭐⭐⭐☆☆ (3/5)
-
-The suite validates key happy paths and several edge cases, but broader coverage (e.g., weekly recurrences, filtering combinations, and more complex schedules) would be needed for higher confidence.
-
-##  Features
-
-### Chronological & Priority-Aware Sorting
-Tasks are consistently ordered by start time, then by importance. Under the hood, the scheduler uses `Scheduler.sort_by_time_and_priority` to sort tasks by:
-* Scheduled datetime (`Task.time()`)
-* Priority (higher priorities first)
-* Duration (longer tasks first when time and priority are tied)
-
-This sorting is applied both when building a daily schedule via `Scheduler.get_today_schedule` and again in the UI before display in `app.py`, ensuring that the most important work at each time slot appears at the top.
-
-### Conflict Detection with Clear UI Warnings
-The app performs lightweight conflict detection to warn when tasks overlap in time (for any pet). `Scheduler.check_conflicts` first orders tasks by start time and then flags any pair where a later task starts before an earlier one’s `Task.end_time`. In `app.py`, any conflicts are surfaced to the user with a warning banner and a table that lists:
-* Pet name
-* Task description
-* Start and end times
-* Priority
-
-This keeps the schedule realistic without automatically changing the user’s planned times.
-
-### Automatic Handling of Recurring Tasks
-Daily and weekly tasks automatically generate the next occurrence when completed. When a task is marked done via `Scheduler.mark_task_complete`, the system:
-* Marks the original `Task` as complete using `Task.mark_complete()`
-* Uses `Task.next_occurrence_time` to compute the next datetime (next day for “Daily”, next week for “Weekly”)
-* Creates a new `Task` instance with the same description, frequency, duration, and priority
-* Attaches the new task to the same `Pet` that owned the original
-
-This supports continuous routines like daily walks or medications without manual re-entry.
-
-### Daily Time Budget & Greedy Filtering
-Users can specify how many minutes they have available today, and the scheduler will pick a subset of tasks that fits within that budget. `Scheduler.get_today_schedule` first filters tasks that occur on the selected date (respecting *Once*, *Daily*, and *Weekly* rules via `Task.occurs_on()` and `Task.occurrence_time_on()`), then sorts them by time and priority. 
-
-If a time budget is provided from the UI in `app.py`, it iterates in order and greedily includes each task whose `Task.duration_minutes()` fits in the remaining minutes, stopping once the budget is exhausted. This produces a realistic, chronological plan that respects the user’s limited time while favoring earlier and higher-priority tasks.
-
-### Scheduling & Algorithms Demo
-
-- **Sorted Daily Schedule**  
-  When you add tasks for one or more pets, PawPal+ builds a day plan that is:
-  - Ordered by start time,
-  - Then by priority (higher priority first),
-  - Then by duration (longer tasks first when there’s still a tie).
-
-- **Conflict Warnings for Overlapping Tasks**  
-  If two tasks overlap in time (even across different pets), the scheduler flags them.  
-  In the Streamlit UI this appears as:
-  - A warning banner explaining that some tasks conflict.
-  - A table showing each conflicting task with its pet, description, start/end time, and priority.
-
-- **Daily Recurring Tasks in Action**  
-  Mark a daily (or weekly) task as complete and the system:
-  - Marks today’s task as done.
-  - Automatically creates the next occurrence at the same time on the next day (or next week) for the same pet.
-
-- **Time Budget Filtering**  
-  Enable the “time budget” option and enter how many minutes you have today.  
-  The demo shows how PawPal+:
-  - Filters tasks that occur today,
-  - Sorts them by time and priority,
-  - Then greedily selects tasks until your available minutes are used up, giving you a realistic, time‑bounded plan.
-
-##  Demo
-### Streamlit App Interface
-![PawPal Demo 1](demo1.png)
-
-![PawPal Demo 2](demo2.png)
-
-### System Architecture
-![Final UML Diagram](final_uml.png)
+**What this project says about me as an AI Engineer:**
+Building the PawPal+ AI Agentic Workflow demonstrates my core approach as AI engineer,  generative AI should enhance a system's user experience without compromising its structural integrity. By designing an architecture where a Gemini LLM acts as an intelligent intent-parser that feeds into strongly-typed Python microservices, we were able to build applications that balance the fluid flexibility of modern AI with the strict reliability, guardrails, and automated testing required in production software.

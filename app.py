@@ -2,6 +2,8 @@ import streamlit as st
 from datetime import datetime, date
 import pandas as pd
 from pawpal_system import Owner, Pet, Task, Scheduler
+import json
+import google.generativeai as genai
 
 # --- 1. Session State Initialization ---
 if "owner" not in st.session_state:
@@ -26,9 +28,108 @@ with st.sidebar:
             new_pet = Pet(pet_name, pet_species)
             owner.add_pet(new_pet)
             st.success(f"{pet_name} added!")
+    st.divider()
+    st.header("🔑 AI Setup")
+    api_key = st.text_input("Enter Gemini API Key", type="password")
+    if api_key:
+        genai.configure(api_key=api_key)
 
 # --- 4. Main Body: Add Tasks ---
 st.header("2. Schedule a Task")
+# --- AI AGENTIC WORKFLOW ---
+st.subheader("🤖 AI Assistant")
+ai_prompt = st.text_area("Describe the task (e.g., 'Schedule a high priority 30-min walk for Leo at 5 PM')")
+
+if st.button("Generate Task with AI"):
+    if not api_key:
+        st.error("Please enter your Gemini API Key in the sidebar first!")
+    elif not owner.pets():
+        st.error("Please add a pet in the sidebar first!")
+    else:
+        pet_names = [pet.name() for pet in owner.pets()]
+        try:
+            # 1. Setup the LLM
+            model = genai.GenerativeModel('gemini-2.5-flash')
+            
+        #    # 2. System Prompt to enforce JSON schema matching your dataclass
+        #     system_instruction = f"""
+        #     You are a pet scheduling assistant. Extract the task details from the user's prompt.
+        #     The user owns these pets: {pet_names}. You MUST assign the task to one of these pets.
+        #     Output ONLY raw JSON, no markdown, no code blocks.
+        #     Format exactly like this:
+        #     {{
+        #         "pet_name": "string",
+        #         "task_desc": "string",
+        #         "start_time": "HH:MM",
+        #         "duration": int (minutes),
+        #         "priority": int (1-5),
+        #         "frequency": "Once" | "Daily" | "Weekly",
+        #         "confidence_score": float (0.0 to 1.0 indicating how clear the user's prompt was)
+        #     }}
+        #     """
+           # 2. System Prompt to enforce JSON schema matching your dataclass
+            system_instruction = f"""
+            You are a pet scheduling assistant. Extract the task details from the user's prompt.
+            The user owns these pets: {pet_names}. You MUST assign the task to one of these pets.
+            Output ONLY raw JSON, no markdown, no code blocks.
+            Format exactly like this:
+            {{
+                "planning_steps": "List step-by-step how you decided on the pet, time, and priority based on the prompt.",
+                "pet_name": "string",
+                "task_desc": "string",
+                "start_time": "HH:MM",
+                "duration": int (minutes),
+                "priority": int (1-5),
+                "frequency": "Once" | "Daily" | "Weekly",
+                "confidence_score": float (0.0 to 1.0)
+            }}
+            """
+            
+            # 3. Call the Agent
+            response = model.generate_content(system_instruction + "\nUser Prompt: " + ai_prompt)
+            
+            # Clean up the response in case the LLM adds markdown backticks
+            cleaned_response = response.text.replace('```json', '').replace('```', '').strip()
+            task_data = json.loads(cleaned_response)
+            
+            # 4. Parse the data into your existing structures
+            from datetime import time # Ensure this is imported at the top of your file
+            hour, minute = map(int, task_data["start_time"].split(':'))
+            ai_time = time(hour, minute)
+            full_datetime = datetime.combine(date.today(), ai_time)
+            
+            # 5. Create the Task object
+            ai_task = Task(
+                task_data["task_desc"], 
+                full_datetime, 
+                task_data["frequency"], 
+                task_data["duration"], 
+                task_data["priority"]
+            )
+            
+            # 6. Guardrail: Conflict Detection before saving
+            selected_pet = next(p for p in owner.pets() if p.name().lower() == task_data["pet_name"].lower())
+            
+            # Temporarily add to check conflicts
+            temp_schedule = scheduler.get_today_schedule(date.today()) + [ai_task]
+            conflicts = scheduler.check_conflicts(temp_schedule)
+            
+            if conflicts:
+                st.warning(f"⚠️ AI caught a conflict! '{ai_task.description()}' overlaps with an existing task. Please adjust the time.")
+            else:
+                selected_pet.add_task(ai_task)
+                confidence_pct = int(task_data.get("confidence_score", 1.0) * 100)
+                # --- NEW: Observable Intermediate Steps ---
+                with st.expander("🧠 View AI Decision-Making Chain"):
+                    st.write(task_data.get("planning_steps", "No planning steps provided."))
+                st.success(f"✅ AI successfully scheduled: {ai_task.description()} for {selected_pet.name()} at {task_data['start_time']}!(AI Confidence: {confidence_pct}%)")
+                
+        except Exception as e:
+            st.error(f"The AI encountered an error processing that request. Try rephrasing. (Error: {e})")
+
+st.divider()
+st.subheader("Or add manually:")
+
 if not owner.pets():
     st.info("👈 Please add a pet in the sidebar first!")
 else:
