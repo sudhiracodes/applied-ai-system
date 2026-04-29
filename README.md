@@ -15,7 +15,7 @@ The system utilizes a wrapper architecture:
 3. **Evaluation/Guardrails:** The parsed Python object is fed directly into the existing `Scheduler.check_conflicts()` method.
 4. **Output:** The system evaluates the rule set. It either successfully schedules the task, or rejects it with a conflict warning, keeping the human in the loop to review the AI's decision.
 
-![Architecture](architecture.png)
+![Architecture](/assets/architecture.png)
 
 ### Setup Instructions
 1. Clone this repository to your local machine: `git clone <your-repo-url>`
@@ -72,7 +72,8 @@ This project taught me that while AI is incredibly powerful at deciphering human
 
 ### Portfolio Artifact & Reflection
 **GitHub Repository:** https://github.com/sudhiracodes/applied-ai-system
-**Loom Walkthrough:** 
+
+**Loom Walkthrough:**  https://www.loom.com/share/2449d20d191b4bd18f5ca6ea54354850
 
 **What this project says about me as an AI Engineer:**
 Building the PawPal+ AI Agentic Workflow demonstrates my core approach as AI engineer,  generative AI should enhance a system's user experience without compromising its structural integrity. By designing an architecture where a Gemini LLM acts as an intelligent intent-parser that feeds into strongly-typed Python microservices, we were able to build applications that balance the fluid flexibility of modern AI with the strict reliability, guardrails, and automated testing required in production software.
